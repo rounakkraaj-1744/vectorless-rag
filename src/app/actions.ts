@@ -3,6 +3,7 @@
 import { searchDB } from "@/lib/search";
 import { generateResponse } from "@/lib/ai";
 import type { Document } from "@/types";
+import pdf from "pdf-parse";
 
 export async function ingestDocumentAction(data: { title: string; content: string; metadata?: Record<string, any> }) {
   const doc: Document = {
@@ -16,8 +17,28 @@ export async function ingestDocumentAction(data: { title: string; content: strin
   return { success: true, doc };
 }
 
+/**
+ * Handle direct PDF uploads via FormData for server-side parsing.
+ */
+export async function ingestPdfAction(formData: FormData) {
+  const file = formData.get("file") as File;
+  if (!file) throw new Error("No file uploaded");
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const data = await pdf(buffer);
+  
+  const doc: Document = {
+    id: Math.random().toString(36).substring(7),
+    title: file.name,
+    content: data.text,
+    metadata: { pages: data.numpages },
+  };
+
+  searchDB.add(doc);
+  return { success: true, doc };
+}
+
 export async function queryRAGAction(query: string) {
-  // 1. Retrieve
   const relevantDocs = searchDB.query(query);
 
   if (relevantDocs.length === 0) {
@@ -27,7 +48,6 @@ export async function queryRAGAction(query: string) {
     };
   }
 
-  // 2. Format Context
   const context = relevantDocs
     .map((doc, idx) => `Document ${idx + 1} (${doc.title}):\n${doc.content}`)
     .join("\n\n---\n\n");
@@ -45,9 +65,7 @@ export async function queryRAGAction(query: string) {
     ANSWER:
   `;
 
-  // 3. Generate
   const answer = await generateResponse(prompt);
-
   return { answer, sources: relevantDocs.map(d => d.title) };
 }
 
