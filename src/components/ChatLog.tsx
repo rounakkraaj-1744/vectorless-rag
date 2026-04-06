@@ -11,8 +11,8 @@ interface ChatLogProps {
 
 export function ChatLog({ messages, isLoading }: ChatLogProps) {
   return (
-    <div className="flex-1 overflow-y-auto px-8 py-12 scroll-smooth">
-      <div className="max-w-3xl mx-auto space-y-8">
+    <div className="flex-1 overflow-y-auto overflow-x-hidden px-8 py-12 scroll-smooth">
+      <div className="max-w-3xl mx-auto space-y-8 break-words">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in zoom-in duration-1000">
             <div className="w-20 h-20 rounded-3xl bg-blue-50 flex items-center justify-center mb-8 shadow-inner font-sans">
