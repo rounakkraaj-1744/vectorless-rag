@@ -5,5 +5,8 @@ export interface Document {
   metadata?: Record<string, any>;
 }
 
-// In-memory document store
-export const documents: Document[] = [];
+export interface Message {
+  role: "user" | "assistant";
+  content: string;
+  sources?: string[];
+}
