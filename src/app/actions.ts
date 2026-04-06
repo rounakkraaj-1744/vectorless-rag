@@ -3,7 +3,7 @@
 import { searchDB } from "@/lib/search";
 import { generateResponse } from "@/lib/ai";
 import type { Document } from "@/types";
-import pdf from "pdf-parse";
+import { extractText } from "unpdf";
 
 export async function ingestDocumentAction(data: { title: string; content: string; metadata?: Record<string, any> }) {
   const doc: Document = {
@@ -17,24 +17,24 @@ export async function ingestDocumentAction(data: { title: string; content: strin
   return { success: true, doc };
 }
 
-/**
- * Handle direct PDF uploads via FormData for server-side parsing.
- */
 export async function ingestPdfAction(formData: FormData) {
   const file = formData.get("file") as File;
   if (!file) throw new Error("No file uploaded");
 
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const data = await pdf(buffer);
+  const binary = new Uint8Array(await file.arrayBuffer());
+  const { text, totalPages } = await extractText(binary);
+  
+  const fullText = Array.isArray(text) ? text.join("\n\n") : text;
   
   const doc: Document = {
     id: Math.random().toString(36).substring(7),
     title: file.name,
-    content: data.text,
-    metadata: { pages: data.numpages },
+    content: fullText,
+    metadata: { pages: totalPages },
   };
 
   searchDB.add(doc);
+  
   return { success: true, doc };
 }
 
